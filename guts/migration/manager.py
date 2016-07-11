@@ -20,6 +20,7 @@ Migration Service
 
 import ast
 import functools
+import os
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -294,7 +295,9 @@ class MigrationManager(manager.SchedulerDependentManager):
 
         drv = importutils.import_object(hypervisor_ref.driver,
                                         hypervisor_ref=hypervisor_ref)
-        instance_disks = drv.get_instance(context, instance_id)
+        p = os.path.join(hypervisor_ref.conversion_dir, migration_ref.id)
+        utils.execute('mkdir', '-p', p, run_as_root=True)
+        instance_disks = drv.get_instance(context, instance_id, p)
         instance_disks = self._convert_disks(instance_disks)
 
         instance_info = ast.literal_eval(resource_ref.properties)

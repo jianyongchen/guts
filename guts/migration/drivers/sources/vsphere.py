@@ -167,11 +167,17 @@ class VSphereSourceDriver(driver.SourceDriver):
             utils.execute('wget', url, '--no-check-certificate',
                           '-O', dest_disk_path, run_as_root=True)
 
-    def get_instance(self, context, instance_id):
+    def get_instance(self, context, instance_id, p=None):
         if not self._initialized:
             self.do_setup(context)
 
         instance = self._find_instance_by_uuid(instance_id)
+        if instance.runtime.powerState == vim.VirtualMachinePowerState.poweredOn:
+            task = instance.PowerOff()
+            while task.info.state not in [vim.TaskInfo.State.success,
+                                          vim.TaskInfo.State.error]:
+                time.sleep(1)
+
         lease = self._get_instance_lease(instance)
 
         def keep_lease_alive(lease):
@@ -199,7 +205,7 @@ class VSphereSourceDriver(driver.SourceDriver):
 
                 for device_url in device_urls:
                     data = {}
-                    path = os.path.join(self.hypervisor_ref.conversion_dir,
+                    path = os.path.join(p,
                                         device_url.targetId)
                     self._get_instance_disk(device_url, path)
                     data = {device_url.key.split(':')[1]: path}

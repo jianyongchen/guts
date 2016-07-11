@@ -62,6 +62,8 @@ class ResourcesController(wsgi.Controller):
             resource['type'] = r.type
             resource['migrated'] = r.migrated
             resource['hypervisor_name'] = r.source_hypervisor
+            resource['source'] = r.source_hypervisor
+            resource['properties'] = r.properties
 
             resources.append(resource)
         return dict(resources=resources)

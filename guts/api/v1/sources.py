@@ -64,6 +64,7 @@ class SourcesController(wsgi.Controller):
             s['host'] = source.registered_host
             s['hypervisor_name'] = source.name
             s['id'] = source.id
+            s['binary'] = 'guts-source'
             sources.append(s)
         return dict(sources=sources)
 

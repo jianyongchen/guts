@@ -64,6 +64,8 @@ class DestinationsController(wsgi.Controller):
             d['host'] = dest.registered_host
             d['hypervisor_name'] = dest.name
             d['id'] = dest.id
+            d['binary'] = 'guts-destination'
+            d['properties'] = dest.properties
             dests.append(d)
         return dict(destinations=dests)
 
