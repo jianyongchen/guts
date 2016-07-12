@@ -142,11 +142,11 @@ Manage Source Resources
     
        $ guts instance-list
     
-  * List all Resources
+  * List all Volumes
 
     .. code-block:: console
 
-       $ guts resource-list
+       $ guts volume-list
 
   * List all Networks
 
@@ -174,14 +174,14 @@ Manage Migrations
 
   .. note::
 
-         Guts supports the following migration types.
-         +---------------------+-----------------------------+------------------------+
-         | Source_Hypervisor   | Resources                   | Destination_hypervisor |
-         +=====================+=============================+========================+
-         | OpenStack           | Instances,Networks,Volumes  | OpenStack              |
-         +---------------------+-----------------------------+------------------------+
-         | VMware              | Instances                   | Openstack              |
-         +---------------------+-----------------------------+------------------------+
+      Guts supports the following migration types.
+      +---------------------+-----------------------------+------------------------+
+      | Source_Hypervisor   | Resources                   | Destination_hypervisor |
+      +=====================+=============================+========================+
+      | OpenStack           | Instances,Networks,Volumes  | OpenStack              |
+      +---------------------+-----------------------------+------------------------+
+      | VMware              | Instances                   | Openstack              |
+      +---------------------+-----------------------------+------------------------+
   ..
 
     
