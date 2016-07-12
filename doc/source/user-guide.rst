@@ -31,7 +31,7 @@ Manage Source Hypervisors
     
   * Create a new Source Hypervisor
     
-    .. code-block:: console
+    ::
     
        $ guts source-create vmware_source \
            --driver guts.migration.drivers.sources.vsphere.VSphereSourceDriver \
@@ -78,7 +78,7 @@ Manage Destination Hypervisors
 
   * Create a new Destination Hypervisor
 
-    .. code-block:: console
+    ::
 
        $ guts destination-create openstack_destination \
            --driver guts.migration.drivers.destinations.openstack.OpenStackDestinationDriver \
@@ -172,7 +172,7 @@ Manage Migrations
          | efbb708d-b9c3-4f8d-85c7-d814994ccff4 | XXXXXXXXXXXXX |   -    |   -   | Sample VM1 Migration | 12821516-7ff0-4a76-9b7b-bb56df54b300 |
          +--------------------------------------+---------------+--------+-------+----------------------+--------------------------------------+
 
-      .. note::
+  .. note::
 
          Guts supports the following migration types.
          +---------------------+-----------------------------+------------------------+
@@ -182,7 +182,7 @@ Manage Migrations
          +---------------------+-----------------------------+------------------------+
          | VMware              | Instances                   | Openstack              |
          +---------------------+-----------------------------+------------------------+
-      ..
+  ..
 
     
   * List all Migrations
