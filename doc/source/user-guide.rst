@@ -49,7 +49,7 @@ Manage Source Hypervisors
 
   * List all Source Hypervisors
     
-    .. code-block:: console
+    ::
     
        $ guts source-list
          +--------------------------------------+-----------------+------------------+--------+
@@ -60,7 +60,7 @@ Manage Source Hypervisors
 
   * Show Source Hypervisor Details
     
-    .. code-block:: console
+    ::
     
        $ guts source-show <SOURCE_ID>
          +-----------------+--------------------------------------+
@@ -93,7 +93,7 @@ Manage Destination Hypervisors
 
   * List all Destination Hypervisors
 
-    .. code-block:: console
+    ::
 
        $ guts destination-list
          +--------------------------------------+-----------------------+------------------+--------+
@@ -104,7 +104,7 @@ Manage Destination Hypervisors
 
   * Show Destination Hypervisor Details
 
-    .. code-block:: console
+    ::
 
        $ guts source-show <DESTINATION_ID>
          +-----------------+--------------------------------------------------------------------------------------------------+
@@ -118,13 +118,28 @@ Manage Destination Hypervisors
                               u'm1.nano', u'm1.xlarge', u'm1.micro', u'cirros256', u'ds512M', u'ds1G', u'ds2G', u'ds4G'],     
                               'keypairs': [], 'networks': [u'private'], 'secgroups': [u'default']}                            
          +-----------------+--------------------------------------------------------------------------------------------------+
+
+    .. note::
+
+        Guts supports the following migration types.
+    ..
+
+    ::
+        +---------------------+-----------------------------+------------------------+
+        | Source_Hypervisor   | Resources                   | Destination_hypervisor |
+        +=====================+=============================+========================+
+        | OpenStack           | Instances,Networks,Volumes  | OpenStack              |
+        +---------------------+-----------------------------+------------------------+
+        | VMware              | Instances                   | Openstack              |
+        +---------------------+-----------------------------+-------------------------
+
              
 Manage Source Resources
 ~~~~~~~~~~~~~~~~~~~~~~~
     
   * List all avalilable Resources
     
-    .. code-block:: console
+    ::
     
        $ guts resource-list
          +--------------------------------------+---------------------------+----------+-----------------+----------+
@@ -138,19 +153,19 @@ Manage Source Resources
     
   * List all Instances
     
-    .. code-block:: console
+    ::
     
        $ guts instance-list
     
   * List all Volumes
 
-    .. code-block:: console
+    ::
 
        $ guts volume-list
 
   * List all Networks
 
-    .. code-block:: console
+    ::
 
        $ guts network-list
 
@@ -160,7 +175,7 @@ Manage Migrations
     
   * Create a new Migration process
     
-    .. code-block:: console
+    ::
     
        $ guts create --name <MIGRATION_NAME> \
            --destination <DESTINATION_NAME> \
