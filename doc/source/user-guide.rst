@@ -26,66 +26,6 @@ platforms on to OpenStack cloud.
 This guide shows GUTS users how to create and manage various migration entities
 with the GUTS command line clients (CLI).
 
-Manage Source Hypervisor Types
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-  * Create a new Source Hypervisor Type
-    
-    .. code-block:: console
-    
-       $ guts source-type-create --name VMWare --description "VMWare(VSphere) Source Hypervisor" guts.migration.drivers.vsphere
-         +--------------------------------------+--------+
-         |                  ID                  |  Name  |
-         +--------------------------------------+--------+
-         | 9bf19345-cb7b-47d3-89bc-b0ce2cd76216 | VMWare |
-         +--------------------------------------+--------+
-    
-  * List all Source Hypervisor Types
-    
-    .. code-block:: console
-    
-       $ guts source-type-list
-         +--------------------------------------+--------+--------------------------------+
-         |                  ID                  |  Name  |             Driver             |
-         +--------------------------------------+--------+--------------------------------+
-         | 9bf19345-cb7b-47d3-89bc-b0ce2cd76216 | VMWare | guts.migration.drivers.vsphere |
-         +--------------------------------------+--------+--------------------------------+
-    
-  * Show Source Hypervisor Type Details
-    
-    .. code-block:: console
-    
-       $ guts source-type-show VMWare
-         +-------------+--------------------------------------+
-         |   Property  |                Value                 |
-         +-------------+--------------------------------------+
-         | description |  VMWare(VSphere) Source Hypervisor   |
-         |    driver   |    guts.migration.drivers.vsphere    |
-         |      id     | 9bf19345-cb7b-47d3-89bc-b0ce2cd76216 |
-         |     name    |                VMWare                |
-         +-------------+--------------------------------------+
-    
-  * Update Source Hypervisor Type
-    
-    .. code-block:: console
-    
-       $ guts source-type-update VMWare --description "New Description"
-         +-------------+--------------------------------------+
-         |   Property  |                Value                 |
-         +-------------+--------------------------------------+
-         | description |           New Description            |
-         |    driver   |    guts.migration.drivers.vsphere    |
-         |      id     | 9bf19345-cb7b-47d3-89bc-b0ce2cd76216 |
-         |     name    |                VMWare                |
-         +-------------+--------------------------------------+
-    
-  * Delete Source Hypervisor Type
-    
-    .. code-block:: console
-    
-       $ guts source-type-delete VMWare
-    
-    
 Manage Source Hypervisors
 ~~~~~~~~~~~~~~~~~~~~~~~~~
     
@@ -93,108 +33,127 @@ Manage Source Hypervisors
     
     .. code-block:: console
     
-       $ guts source-create --name MyVMWare1 --type VMWare --description "My VMWare(VSphere) Hypervisor" "host=<IP>;user=<USER>;password=<PASSWORD>;port=<PORT>"
-         +--------------------------------------+-----------+------------------+-------------------------------+
-         |                  ID                  |    Name   | Source Type Name |          Description          |
-         +--------------------------------------+-----------+------------------+-------------------------------+
-         | 7d5e45d5-1032-4ec9-924e-beb827a10c4e | MyVMWare1 |      VMWare      | My VMWare(VSphere) Hypervisor |
-         +--------------------------------------+-----------+------------------+-------------------------------+
-    
+       $ guts source-create vmware_source \
+           --driver guts.migration.drivers.sources.vsphere.VSphereSourceDriver \
+           --capabilities instance \
+           --registered_host guts-environment \
+           --credentials "{'host':'<HOST_IP>','username':'<USERNAME>','password':'<PASSWORD>','port':'<PORT>'}"
+         +-----------------+--------------------------------------+
+         | Property        | Value                                |
+         +-----------------+--------------------------------------+
+         | Binary          | guts-source                          |
+         | Host            | guts-environment                     |
+         | Hypervisor Name | vmware_source                        |
+         | ID              | f57bb9c4-b319-4d71-a3c6-d3a815a87359 |
+         +-----------------+--------------------------------------+
+
   * List all Source Hypervisors
     
     .. code-block:: console
     
        $ guts source-list
-         +--------------------------------------+-----------+------------------+-------------------------------+
-         |                  ID                  |    Name   | Source Type Name |          Description          |
-         +--------------------------------------+-----------+------------------+-------------------------------+
-         | 7d5e45d5-1032-4ec9-924e-beb827a10c4e | MyVMWare1 |      VMWare      | My VMWare(VSphere) Hypervisor |
-         +--------------------------------------+-----------+------------------+-------------------------------+
-    
+         +--------------------------------------+-----------------+------------------+--------+
+         |                  ID                  | Hypervisor Name |       Host       | Status |
+         +--------------------------------------+-----------------+------------------+--------+
+         | f57bb9c4-b319-4d71-a3c6-d3a815a87359 |  vmware_source  | guts-environment |   Up   |
+         +--------------------------------------+-----------------+------------------+--------+    
+
   * Show Source Hypervisor Details
     
     .. code-block:: console
     
-       $ guts source-show MyVMWare1
-         +------------------------+----------------------------------------------------------------------------------+
-         |        Property        |                                      Value                                       |
-         +------------------------+----------------------------------------------------------------------------------+
-         |   Connection String    |              host=<IP>;user=<USER>;password=<PASSWORD>;port=<PORT>               |
-         |      Description       |                          My VMWare(VSphere) Hypervisor                           |
-         |           ID           |                       7d5e45d5-1032-4ec9-924e-beb827a10c4e                       |
-         |          Name          |                                    MyVMWare1                                     |
-         | Source Hypervisor Type |                                      VMWare                                      |
-         +------------------------+----------------------------------------------------------------------------------+
+       $ guts source-show <SOURCE_ID>
+         +-----------------+--------------------------------------+
+         | Property        | Value                                |
+         +-----------------+--------------------------------------+
+         | Binary          | guts-source                          |
+         | Host            | guts-environment                     |
+         | Hypervisor Name | vmware_source                        |
+         | ID              | f57bb9c4-b319-4d71-a3c6-d3a815a87359 |
+         +-----------------+--------------------------------------+    
+
+
+Manage Destination Hypervisors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  * Create a new Destination Hypervisor
+
+    .. code-block:: console
+
+       $ guts destination-create openstack_destination \
+           --driver guts.migration.drivers.destinations.openstack.OpenStackDestinationDriver \
+           --capabilities instance,network,volume \
+           --registered_host guts-environment \
+           --credentials "{'auth_url':'<KEYSTONE_AUTH_URL>','username':'<USER>','password':'<PASSWORD>','tenant_name':'<TENANT_NAME>}"
+         +--------------------------------------+-----------------------+------------------+--------+
+         |                  ID                  |    Hypervisor Name    |       Host       | Status |
+         +--------------------------------------+-----------------------+------------------+--------+
+         | a017eac1-dd81-4f66-936e-05d31951781e | openstack_destination | guts-environment |   Up   |
+         +--------------------------------------+-----------------------+------------------+--------+
+
+  * List all Destination Hypervisors
+
+    .. code-block:: console
+
+       $ guts destination-list
+         +--------------------------------------+-----------------------+------------------+--------+
+         |                  ID                  |    Hypervisor Name    |       Host       | Status |
+         +--------------------------------------+-----------------------+------------------+--------+
+         | a017eac1-dd81-4f66-936e-05d31951781e | openstack_destination | guts-environment |   Up   |
+         +--------------------------------------+-----------------------+------------------+--------+
+
+  * Show Destination Hypervisor Details
+
+    .. code-block:: console
+
+       $ guts source-show <DESTINATION_ID>
+         +-----------------+--------------------------------------------------------------------------------------------------+
+         | Property        | Value                                                                                            |
+         +-----------------+--------------------------------------------------------------------------------------------------+
+         | Binary          | guts-destination                                                                                 |
+         | Host            | guts-environment                                                                                 |
+         | Hypervisor Name | openstack_destination                                                                            |
+         | ID              | a017eac1-dd81-4f66-936e-05d31951781e                                                             |
+         | properties      | {'flavors': [u'm1.tiny', u'm1.small', u'm1.medium', u'm1.large',                                 
+                              u'm1.nano', u'm1.xlarge', u'm1.micro', u'cirros256', u'ds512M', u'ds1G', u'ds2G', u'ds4G'],     
+                              'keypairs': [], 'networks': [u'private'], 'secgroups': [u'default']}                            
+         +-----------------+--------------------------------------------------------------------------------------------------+
+             
+Manage Source Resources
+~~~~~~~~~~~~~~~~~~~~~~~
     
-  * Update Source Hypervisor
+  * List all avalilable Resources
     
     .. code-block:: console
     
-       $ guts source-update MyVMWare1 --description "Some New Description"
-         +------------------------+----------------------------------------------------------------------------------+
-         |        Property        |                                      Value                                       |
-         +------------------------+----------------------------------------------------------------------------------+
-         |   Connection String    |              host=<IP>;user=<USER>;password=<PASSWORD>;port=<PORT>               |
-         |      Description       |                               Some New Description                               |
-         |           ID           |                       7d5e45d5-1032-4ec9-924e-beb827a10c4e                       |
-         |          Name          |                                    MyVMWare1                                     |
-         | Source Hypervisor Type |                                      VMWare                                      |
-         +------------------------+----------------------------------------------------------------------------------+
+       $ guts resource-list
+         +--------------------------------------+---------------------------+----------+-----------------+----------+
+         |                  ID                  |            Name           |   Type   | Hypervisor Name | Migrated |
+         +--------------------------------------+---------------------------+----------+-----------------+----------+
+         | 29042f03-a330-4b38-9c63-87ea99ed3c86 |        XXXXXXXXXXXX       | instance |  vmware_source  |  False   |
+         | 29ca34a9-4713-4db1-9ab9-ffc71f201fe1 |        XXXXXXXXXXXX       | instance |  vmware_source  |  False   |
+         | 3ef3e64b-84c6-478d-a484-6a17c99c4a3b |        XXXXXXXXXXXX       | instance |  vmware_source  |  False   |
+         | 5c78d0ec-ebf0-49f9-a962-e611804d60ed |        XXXXXXXXXXXX       | instance |  vmware_source  |   True   |
+         +--------------------------------------+---------------------------+----------+-----------------+----------+
     
-  * Delete Source Hypervisor
-    
-    .. code-block:: console
-    
-       $ guts source-delete MyVMWare1
-    
-    
-Manage Source Instances (VMs)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
-  * Fetch VM list from Source Hypervisor
+  * List all Instances
     
     .. code-block:: console
     
-       $ guts vm-fetch MyVMWare1
+       $ guts instance-list
     
-  * List all avalilable VMs
-    
+  * List all Resources
+
     .. code-block:: console
-    
-       $ guts vm-list
-         +--------------------------------------+--------------------+-----------------+----------+-------------------+
-         |                  ID                  |        Name        | Hypervisor Name | Migrated | Destination VM id |
-         +--------------------------------------+--------------------+-----------------+----------+-------------------+
-         | 12821516-7ff0-4a76-9b7b-bb56df54b300 |      XXXXXXX       |    MyVMWare1    |  False   |         -         |
-         | 42326e52-471c-4f2a-b750-7b9ef33d41b9 |      XXXXXXX       |    MyVMWare1    |  False   |         -         |
-         | 4dead0bc-bb3d-463d-90f0-76302c9368f4 |      XXXXXXX       |    MyVMWare1    |  False   |         -         |
-         | b7d78ecd-71eb-4348-9129-df80ba9831b7 |      XXXXXXX       |    MyVMWare1    |  False   |         -         |
-         | c0985ed3-d9c1-46e5-8b15-d9b5506ba66e |      XXXXXXX       |    MyVMWare1    |  False   |         -         |
-         | faf28414-8184-4bac-9884-743821c398bf |      XXXXXXX       |    MyVMWare1    |  False   |         -         |
-         +--------------------------------------+--------------------+-----------------+----------+-------------------+
-    
-  * Show Source VM Details
-    
+
+       $ guts resource-list
+
+  * List all Networks
+
     .. code-block:: console
-    
-       $ guts vm-show 12821516-7ff0-4a76-9b7b-bb56df54b300
-         +-------------------+--------------------------------------+
-         |      Property     |                Value                 |
-         +-------------------+--------------------------------------+
-         | Destination VM ID |                 None                 |
-         |  Hypervisor Name  |              MyVMWare1               |
-         |         ID        | 12821516-7ff0-4a76-9b7b-bb56df54b300 |
-         |    Is Migrated    |                False                 |
-         |        Name       |            XXXXXXXXXXXXX             |
-         |   UUID at Source  | 502ce17f-ab83-b13f-142e-cdc8c4a0a65e |
-         +-------------------+--------------------------------------+
-    
-  * Delete Source VM
-    
-    .. code-block:: console
-    
-       $ guts vm-delete 12821516-7ff0-4a76-9b7b-bb56df54b300
-    
+
+       $ guts network-list
+
     
 Manage Migrations
 ~~~~~~~~~~~~~~~~~
@@ -203,26 +162,36 @@ Manage Migrations
     
     .. code-block:: console
     
-       $ guts create --name VM1_Migration --description "Sample VM1 Migration" MinimalUbuntu
+       $ guts create --name <MIGRATION_NAME> \
+           --destination <DESTINATION_NAME> \
+           --extra_param "{'flavor':<FLAVOR_ID>,'secgroup':'<SECURITYGROUP_NAME>','network':'<NETWORK_NAME>','keypair':'<KEYPAIR_NAME>'}" \
+           <RESOURCE_ID>
          +--------------------------------------+---------------+--------+-------+----------------------+--------------------------------------+
          |                  ID                  |      Name     | Status | Event |     Description      |          Source Instance ID          |
          +--------------------------------------+---------------+--------+-------+----------------------+--------------------------------------+
          | efbb708d-b9c3-4f8d-85c7-d814994ccff4 | XXXXXXXXXXXXX |   -    |   -   | Sample VM1 Migration | 12821516-7ff0-4a76-9b7b-bb56df54b300 |
          +--------------------------------------+---------------+--------+-------+----------------------+--------------------------------------+
+
+      .. note::
+
+         Guts supports the following migration types.
+         +---------------------+-----------------------------+------------------------+
+         | Source_Hypervisor   | Resources                   | Destination_hypervisor |
+         +=====================+=============================+========================+
+         | OpenStack           | Instances,Networks,Volumes  | OpenStack              |
+         +---------------------+-----------------------------+------------------------+
+         | VMware              | Instances                   | Openstack              |
+         +---------------------+-----------------------------+------------------------+
+      ..
+
     
   * List all Migrations
     
     .. code-block:: console
     
        $ guts list
-         +--------------------------------------+---------------+-----------+-------+----------------------+--------------------------------------+
-         |                  ID                  |      Name     |  Status   | Event |     Description      |          Source Instance ID          |
-         +--------------------------------------+---------------+-----------+-------+----------------------+--------------------------------------+
-         | efbb708d-b9c3-4f8d-85c7-d814994ccff4 | XXXXXXXXXXXXX | COMPLETED |   -   | Sample VM1 Migration | 12821516-7ff0-4a76-9b7b-bb56df54b300 |
-         +--------------------------------------+---------------+-----------+-------+----------------------+--------------------------------------+
-    
-  * Delete a Migration
-    
-    .. code-block:: console
-    
-       $ guts delete efbb708d-b9c3-4f8d-85c7-d814994ccff4
+         +--------------------------------------+-----------+----------+-------+-------------+---------------+------------------------+
+         |                  ID                  |    Name   |  Status  | Event | Resource ID | Resource Type | Destination Hypervisor |
+         +--------------------------------------+-----------+----------+-------+-------------+---------------+------------------------+
+         | d16aa1a0-f6dc-4588-b615-008455d27ed2 | XXXXXXXXX | COMPLETE |   -   |   XXXXXXX   |    instance   | openstack_destination  |
+         +--------------------------------------+-----------+----------+-------+-------------+---------------+------------------------+ 
