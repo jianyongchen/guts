@@ -193,11 +193,10 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
                                  'bare', '--name', image_name,
                                  run_as_root=True)
 
-<<<<<<< HEAD
     def _flavor_create(self, name, memory, cpus, root_gb):
         flavor = self.nova.flavors.create(name, memory, cpus, root_gb)
         return flavor
-=======
+
     def nova_boot(self, instance_name, image_name, extra_params):
         flavor = '2'
         network = None
