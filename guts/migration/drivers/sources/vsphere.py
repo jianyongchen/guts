@@ -15,6 +15,7 @@
 
 
 import atexit
+import ast
 import os
 import time
 
@@ -61,15 +62,23 @@ class VSphereSourceDriver(driver.SourceDriver):
     """VSphere Source Hypervisor"""
     def __init__(self, *args, **kwargs):
         super(VSphereSourceDriver, self).__init__(*args, **kwargs)
+
+    def get_credentials(self):
         self.configuration.append_config_values(vsphere_source_opts)
+
+        return {'host': self.configuration.vsphere_host,
+                'username': self.configuration.vsphere_username,
+                'password': self.configuration.vsphere_password,
+                'port': self.configuration.vsphere_port}
 
     def do_setup(self, context):
         """Any initialization the source driver does while starting."""
-        super(VSphereSourceDriver, self).do_setup(context)
-        host = self.configuration.vsphere_host
-        username = self.configuration.vsphere_username
-        password = self.configuration.vsphere_password
-        port = self.configuration.vsphere_port
+        creds = ast.literal_eval(self.hypervisor_ref.credentials)
+
+        host = creds['host']
+        username = creds['username']
+        password = creds['password']
+        port = creds['port']
         try:
             self.con = connect.SmartConnect(host=host, user=username,
                                             pwd=password, port=port)
@@ -158,8 +167,17 @@ class VSphereSourceDriver(driver.SourceDriver):
             utils.execute('wget', url, '--no-check-certificate',
                           '-O', dest_disk_path, run_as_root=True)
 
-    def get_instance(self, context, instance_id):
+    def get_instance(self, context, instance_id, p=None):
+        if not self._initialized:
+            self.do_setup(context)
+
         instance = self._find_instance_by_uuid(instance_id)
+        if instance.runtime.powerState == vim.VirtualMachinePowerState.poweredOn:
+            task = instance.PowerOff()
+            while task.info.state not in [vim.TaskInfo.State.success,
+                                          vim.TaskInfo.State.error]:
+                time.sleep(1)
+
         lease = self._get_instance_lease(instance)
 
         def keep_lease_alive(lease):
@@ -187,7 +205,7 @@ class VSphereSourceDriver(driver.SourceDriver):
 
                 for device_url in device_urls:
                     data = {}
-                    path = os.path.join(self.configuration.conversion_dir,
+                    path = os.path.join(p,
                                         device_url.targetId)
                     self._get_instance_disk(device_url, path)
                     data = {device_url.key.split(':')[1]: path}

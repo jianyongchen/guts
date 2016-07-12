@@ -23,20 +23,21 @@ class MigrationDriver(object):
     def __init__(self, execute=utils.execute, *args, **kwargs):
         self.host = kwargs.get('host')
         self.configuration = kwargs.get('configuration')
+        self.hypervisor_ref = kwargs.get('hypervisor_ref')
         self._execute = execute
         self._stats = {}
         self._initialized = False
-
-    def do_setup(self, context):
-        """Any initialization the volume driver does while starting."""
-        pass
 
 
 class SourceDriver(MigrationDriver):
     """This is the base class for all source hypervisor drivers."""
     def __init__(self, *args, **kwargs):
         super(SourceDriver, self).__init__(*args, **kwargs)
-        self.exclude = self.configuration.exclude.split(',')
+        if self.hypervisor_ref:
+            if self.hypervisor_ref.exclude:
+                self.exclude = self.hypervisor_ref.exclude.split(',')
+            else:
+                self.exclude = []
 
     def get_instances_list(self):
         msg = _("The method get_instances_list is not implemented.")

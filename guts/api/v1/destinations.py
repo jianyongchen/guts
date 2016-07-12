@@ -19,12 +19,14 @@ import webob
 
 from oslo_config import cfg
 from oslo_log import log as logging
+import oslo_messaging as messaging
 from oslo_utils import timeutils
 
 from guts.api import extensions
 from guts.api.openstack import wsgi
 from guts import exception
 from guts import objects
+from guts.objects import base as objects_base
 from guts import rpc
 
 LOG = logging.getLogger(__name__)
@@ -51,44 +53,69 @@ class DestinationsController(wsgi.Controller):
         rpc.get_notifier('source').info(ctxt, method, payload)
 
     def index(self, req):
-        """Returns the list of Source Hypervisors."""
+        """Returns the list of Destination Hypervisors."""
         context = req.environ['guts.context']
-        src_services = objects.ServiceList.get_all_by_topic(context,
-                                                            'guts-destination')
-        now = timeutils.utcnow(with_timezone=True)
-
-        destinations = []
-        for service in src_services:
-            dest = {}
-            delta = now - (service.updated_at or service.created_at)
-            delta_sec = delta.total_seconds()
-            alive = abs(delta_sec) <= CONF.service_down_time
-            dest['status'] = (alive and "Up") or "Down"
-            dest['host'] = service.host.split('@')[0]
-            dest['hypervisor_name'] = service.host.split('@')[1]
-            dest['id'] = service.id
-            destinations.append(dest)
-        return dict(destinations=destinations)
+        db_dests = objects.HypervisorList.get_all_by_type(context,
+                                                         'destination')
+        dests = []
+        for dest in db_dests:
+            d = {}
+            d['status'] = "Up"
+            d['host'] = dest.registered_host
+            d['hypervisor_name'] = dest.name
+            d['id'] = dest.id
+            d['binary'] = 'guts-destination'
+            d['properties'] = dest.properties
+            dests.append(d)
+        return dict(destinations=dests)
 
     def show(self, req, id):
         """Returns data about given destination hypervisor."""
         context = req.environ['guts.context']
         try:
-            service = objects.Service.get(context, id)
+            db_source = objects.Hypervisor.get(context, id)
         except exception.NotFound:
             raise webob.exc.HTTPNotFound()
-        now = timeutils.utcnow(with_timezone=True)
-        dest = {}
-        delta = now - (service.updated_at or service.created_at)
-        delta_sec = delta.total_seconds()
-        alive = abs(delta_sec) <= CONF.service_down_time
-        dest['status'] = (alive and "Up") or "Down"
-        dest['host'] = service.host.split('@')[0]
-        dest['hypervisor_name'] = service.host.split('@')[1]
-        dest['id'] = service.id
-        dest['binary'] = service.binary
+        source = {}
+        source['status'] = "Up"
+        source['host'] = db_source.registered_host
+        source['hypervisor_name'] = db_source.name
+        source['id'] = db_source.id
+        source['binary'] = 'guts-destination'
+        source['properties'] = db_source.properties
 
-        return {'destination': dest}
+        return {'destination': source}
+
+    def create(self, req, body):
+        """Create a new hypervisor"""
+        context = req.environ['guts.context']
+        LOG.debug('Create hypervisor request body: %s', body)
+        hypervisor_values = body['destination']
+        if not hypervisor_values.get('conversion_dir'):
+            hypervisor_values['conversion_dir'] = '/var/lib/guts/migrations'
+
+        hyp_ref = objects.Hypervisor(context=context, **hypervisor_values)
+        hyp_ref.create()
+        destination = {}
+        destination['status'] = "Up"
+        destination['host'] = hyp_ref.registered_host
+        destination['hypervisor_name'] = hyp_ref.name
+        destination['id'] = hyp_ref.id
+        destination['binary'] = 'guts-destination'
+
+        self._cast_to_manager(context, hyp_ref)
+        return {'destination': destination}
+
+    def _cast_to_manager(self, context, hypervisor_ref):
+        host = hypervisor_ref.registered_host
+        topic = ('guts-migration.%s' % (host))
+        target = messaging.Target(topic=topic, version='1.8')
+        serializer = objects_base.GutsObjectSerializer()
+        client = rpc.get_client(target, version_cap=None,
+                                serializer=serializer)
+
+        ctxt = client.prepare(version='1.8')
+        ctxt.cast(context, 'get_destination_properties', hypervisor_ref=hypervisor_ref)
 
 
 def create_resource(ext_mgr):
