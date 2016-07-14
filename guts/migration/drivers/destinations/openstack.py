@@ -182,16 +182,18 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             raise exception.VolumeCreationFailed(reason=e.message)
 
     def _upload_image_to_glance(self, image_name, file_path):
-        out, err = utils.execute('glance', '--os-username',
-                                 self.creds['username'],
-                                 '--os-password', self.creds['password'],
-                                 '--os-tenant-name',
-                                 self.creds['tenant_name'],
-                                 '--os-auth-url', self.creds['auth_url'],
-                                 'image-create', '--file', file_path,
-                                 '--disk-format', 'raw', '--container-format',
-                                 'bare', '--name', image_name,
-                                 run_as_root=True)
+        image_meta = {'name': image_name,
+                      'disk_format': 'qcow2',
+                      'container_format': 'bare'}
+        try:
+            image = self.glance.images.create(**image_meta)
+            image.update(data=open(file_path, 'rb'))
+            return image
+        except Exception as ex:
+            msg = (_("Glance image upload failed: %(err)s") %
+                   {'err': ex})
+            LOG.error(msg)
+            raise exception.NotAuthorized(reason=msg)
 
     def nova_boot(self, instance_name, image_name, extra_params):
         flavor = '2'
