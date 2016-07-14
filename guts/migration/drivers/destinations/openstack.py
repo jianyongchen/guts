@@ -195,6 +195,10 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             LOG.error(msg)
             raise exception.NotAuthorized(reason=msg)
 
+    def _flavor_create(self, name, memory, cpus, root_gb):
+        flavor = self.nova.flavors.create(name, memory, cpus, root_gb)
+        return flavor
+
     def nova_boot(self, instance_name, image_name, extra_params):
         flavor = '2'
         network = None
@@ -228,12 +232,23 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
         disks = kwargs['disks']
         mig_ref = kwargs['mig_ref_id']
         count = 0
+        network = self.nova.networks.find(label="private")
+        flavor = self._flavor_create(kwargs['id'], kwargs['memory'],
+                                     kwargs['vcpus'], int(kwargs['root_gb']))
 
         for disk in disks:
             image_name = "%s_%s" % (mig_ref, count)
             self._upload_image_to_glance(image_name, disk[str(count)])
             if count == 0:
-                self.nova_boot(kwargs['name'], image_name, extra_params)
+                try:
+                    image_id = self.nova.images.find(name=image_name)
+                except Exception as ex:
+                    LOG.error(_LE("Glance Image Not Found, id: %s"), image_id)
+                    raise
+                self.nova.servers.create(name=kwargs['name'],
+                                         image=image_id.id,
+                                         flavor=flavor.id,
+                                         nics=[{'net-id': network.id}])
             else:
                 img = self.glance.images.find(name=image_name)
                 self.cinder.volumes.create(
