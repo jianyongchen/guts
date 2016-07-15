@@ -19,7 +19,7 @@ import time
 from cinderclient import client as cinder_client
 from glanceclient import client as glance_client
 from guts import exception
-from guts.i18n import _, _LE
+from guts.i18n import _, _LI, _LE
 from guts.migration.drivers import driver
 from guts import utils
 from keystoneauth1.identity import v3
@@ -182,11 +182,13 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             raise exception.VolumeCreationFailed(reason=e.message)
 
     def _upload_image_to_glance(self, image_name, file_path):
+        LOG.info(_LI('Uploading image to glance, image_name: %s.'), image_name)
         image_meta = {'name': image_name,
                       'disk_format': 'qcow2',
                       'container_format': 'bare'}
         try:
             image = self.glance.images.create(**image_meta)
+            image.update(properties=dict(hw_disk_bus='ide'))
             image.update(data=open(file_path, 'rb'))
             return image
         except Exception as ex:
@@ -200,55 +202,39 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
         return flavor
 
     def nova_boot(self, instance_name, image_name, extra_params):
-        flavor = '2'
+        flavor = None
         network = None
         secgroup = None
         keypair = None
         if extra_params:
             extra_params = ast.literal_eval(extra_params)
-            flavor = extra_params.get('flavor', 2)
+            flavor = extra_params.get('flavor', None)
             network = extra_params.get('network', None)
             secgroup = extra_params.get('secgroup', None)
             keypair = extra_params.get('keypair', None)
 
-        boot_string = ['nova', '--os-username', self.creds['username'],
-                       '--os-password', self.creds['password'],
-                       '--os-tenant-name', self.creds['tenant_name'],
-                       '--os-auth-url', self.creds['auth_url'],
-                       'boot', '--image', image_name,
-                       '--flavor', flavor,
-                       instance_name]
-        if network:
-            boot_string.extend(['--nic', "net-name=%s" % (network)])
-        if keypair:
-            boot_string.extend(['--key-name', keypair])
-        if secgroup:
-            boot_string.extend(['--security-groups', secgroup])
-        out, err = utils.execute(*boot_string, run_as_root=True)
+        image_id = self.nova.images.find(name=image_name)
+        net = self.nova.networks.find(label=network)
+        nics = [{'net-id': net.id}]
+#        group = self.nova.security_groups.find(name=secgroup)
+        LOG.info(_LI('Booting an instance on destination hypervisor, name: %s'), instance_name)
+        self.nova.servers.create(name=instance_name,
+                                 image=image_id.id, flavor=flavor,
+                                 nics=nics)
 
     def create_instance(self, context, extra_params, **kwargs):
         if not self._initialized:
             self.do_setup(context)
         disks = kwargs['disks']
         mig_ref = kwargs['mig_ref_id']
+#        flavor = self._flavor_create(kwargs['id'], kwargs['memory'],
+#                                     kwargs['vcpus'], int(kwargs['root_gb']))
         count = 0
-        network = self.nova.networks.find(label="private")
-        flavor = self._flavor_create(kwargs['id'], kwargs['memory'],
-                                     kwargs['vcpus'], int(kwargs['root_gb']))
-
         for disk in disks:
             image_name = "%s_%s" % (mig_ref, count)
             self._upload_image_to_glance(image_name, disk[str(count)])
             if count == 0:
-                try:
-                    image_id = self.nova.images.find(name=image_name)
-                except Exception as ex:
-                    LOG.error(_LE("Glance Image Not Found, id: %s"), image_id)
-                    raise
-                self.nova.servers.create(name=kwargs['name'],
-                                         image=image_id.id,
-                                         flavor=flavor.id,
-                                         nics=[{'net-id': network.id}])
+                self.nova_boot(kwargs['name'], image_name, extra_params)
             else:
                 img = self.glance.images.find(name=image_name)
                 self.cinder.volumes.create(
