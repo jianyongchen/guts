@@ -202,29 +202,32 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
         return flavor
 
     def nova_boot(self, instance_name, image_name, extra_params):
-        flavor = None
-        network = None
-        secgroup = None
-        keypair = None
+        flavor = '5'
         if extra_params:
             extra_params = ast.literal_eval(extra_params)
-            flavor = extra_params.get('flavor', None)
+            flavor = extra_params.get('flavor', 5)
             network = extra_params.get('network', None)
             secgroup = extra_params.get('secgroup', None)
             keypair = extra_params.get('keypair', None)
 
         image = self.nova.images.find(name=image_name)
-        net = self.nova.networks.find(label=network)
-        nics = [{'net-id': net.id}]
-        instance_meta = {'name': instance_name,
-                         'image': image.id,
-                         'flavor': flavor,
-                         'nics': nics,
-                         'key_name': keypair,
-                         'security_groups': [secgroup]}
+        boot_string = {'name': instance_name,
+                       'image': image.id,
+                       'flavor': flavor}
+        if flavor:
+            boot_string['flavor'] = flavor
+        if network:
+            net = self.nova.networks.find(label=network)
+            nics = [{'net-id': net.id}]
+            boot_string['nics'] = nics
+        if keypair:
+            boot_string['key_name'] = keypair
+        if secgroup:
+            boot_string['security_groups'] = [secgroup]
+
         LOG.info(_LI('Booting an instance on destination hypervisor, '
                      'name: %s'), instance_name)
-        self.nova.servers.create(**instance_meta)
+        self.nova.servers.create(**boot_string)
 
     def create_instance(self, context, extra_params, **kwargs):
         if not self._initialized:
