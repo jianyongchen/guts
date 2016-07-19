@@ -319,6 +319,11 @@ class InstanceImageDownloadFailed(GutsException):
                 "Reason: %(reason)s")
 
 
+class GlanceImageUploadFailed(GutsException):
+     message = _("Failed to upload Imgae to glance."
+                 "Reason: %(reason)s")
+
+
 class InvalidPowerState(MigrationValidationFailed):
     message = _("Instance: %(instance_id)s cannot be migrated in its current "
                 "power state. Please shutdown virtual instance and retry.")

@@ -195,7 +195,7 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             msg = (_("Glance image upload failed: %(err)s") %
                    {'err': ex})
             LOG.error(msg)
-            raise exception.NotAuthorized(reason=msg)
+            raise exception.GlanceImageUploadFailed(reason=msg)
 
     def _flavor_create(self, name, memory, cpus, root_gb):
         flavor = self.nova.flavors.create(name, memory, cpus, root_gb)
@@ -213,14 +213,18 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             secgroup = extra_params.get('secgroup', None)
             keypair = extra_params.get('keypair', None)
 
-        image_id = self.nova.images.find(name=image_name)
+        image = self.nova.images.find(name=image_name)
         net = self.nova.networks.find(label=network)
         nics = [{'net-id': net.id}]
-#        group = self.nova.security_groups.find(name=secgroup)
-        LOG.info(_LI('Booting an instance on destination hypervisor, name: %s'), instance_name)
-        self.nova.servers.create(name=instance_name,
-                                 image=image_id.id, flavor=flavor,
-                                 nics=nics)
+        instance_meta = {'name': instance_name,
+                         'image': image.id,
+                         'flavor': flavor,
+                         'nics': nics,
+                         'key_name': keypair,
+                         'security_groups': [secgroup]}
+        LOG.info(_LI('Booting an instance on destination hypervisor, '
+                     'name: %s'), instance_name)
+        self.nova.servers.create(**instance_meta)
 
     def create_instance(self, context, extra_params, **kwargs):
         if not self._initialized:
