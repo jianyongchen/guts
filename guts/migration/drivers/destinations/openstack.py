@@ -197,10 +197,6 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             LOG.error(msg)
             raise exception.GlanceImageUploadFailed(reason=msg)
 
-    def _flavor_create(self, name, memory, cpus, root_gb):
-        flv = self.nova.flavors.create(name, memory, cpus, root_gb)
-        return flv
-
     def nova_boot(self, instance_name, image_name, extra_params, flv):
         flavor = None
         network = None
@@ -220,6 +216,8 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
         if flavor:
             boot_string['flavor'] = flavor
         else:
+            flv = self.nova.flavors.create(flv['name'], flv['memory'],
+                                           flv['cpus'], flv['root_gb'])
             boot_string['flavor'] = flv.id
         if network:
             net = self.nova.networks.find(label=network)
@@ -239,8 +237,10 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             self.do_setup(context)
         disks = kwargs['disks']
         mig_ref = kwargs['mig_ref_id']
-        flv = self._flavor_create(kwargs['id'], kwargs['memory'],
-                                  kwargs['vcpus'], int(kwargs['root_gb']))
+        flv = {'name': kwargs['id'],
+               'memory': kwargs['memory'],
+               'cpus': kwargs['vcpus'],
+               'root_gb': int(kwargs['root_gb'])}
         count = 0
         for disk in disks:
             image_name = "%s_%s" % (mig_ref, count)
