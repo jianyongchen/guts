@@ -198,14 +198,17 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             raise exception.GlanceImageUploadFailed(reason=msg)
 
     def _flavor_create(self, name, memory, cpus, root_gb):
-        flavor = self.nova.flavors.create(name, memory, cpus, root_gb)
-        return flavor
+        flv = self.nova.flavors.create(name, memory, cpus, root_gb)
+        return flv
 
-    def nova_boot(self, instance_name, image_name, extra_params):
-        flavor = '5'
+    def nova_boot(self, instance_name, image_name, extra_params, flv):
+        flavor = None
+        network = None
+        keypair = None
+        secgroup = None
         if extra_params:
             extra_params = ast.literal_eval(extra_params)
-            flavor = extra_params.get('flavor', 5)
+            flavor = extra_params.get('flavor', None)
             network = extra_params.get('network', None)
             secgroup = extra_params.get('secgroup', None)
             keypair = extra_params.get('keypair', None)
@@ -216,6 +219,8 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
                        'flavor': flavor}
         if flavor:
             boot_string['flavor'] = flavor
+        else:
+            boot_string['flavor'] = flv.id
         if network:
             net = self.nova.networks.find(label=network)
             nics = [{'net-id': net.id}]
@@ -234,14 +239,14 @@ class OpenStackDestinationDriver(driver.DestinationDriver):
             self.do_setup(context)
         disks = kwargs['disks']
         mig_ref = kwargs['mig_ref_id']
-#        flavor = self._flavor_create(kwargs['id'], kwargs['memory'],
-#                                     kwargs['vcpus'], int(kwargs['root_gb']))
+        flv = self._flavor_create(kwargs['id'], kwargs['memory'],
+                                  kwargs['vcpus'], int(kwargs['root_gb']))
         count = 0
         for disk in disks:
             image_name = "%s_%s" % (mig_ref, count)
             self._upload_image_to_glance(image_name, disk[str(count)])
             if count == 0:
-                self.nova_boot(kwargs['name'], image_name, extra_params)
+                self.nova_boot(kwargs['name'], image_name, extra_params, flv)
             else:
                 img = self.glance.images.find(name=image_name)
                 self.cinder.volumes.create(
